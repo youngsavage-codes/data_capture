@@ -4,6 +4,8 @@ export const parseDocumentData = (extractedText: string): any => {
   const dobRegex = /(?:Date of Birth|rl Date of Birth|Daxie of Dirth)\s*[:|-]?\s*(\d{1,2}-[A-Z]{3}-\d{4})/i;
   const idNumberRegex = /(?:ID Number|Number|ID)\s*[:|-]?\s*(\d{6,10})/i;
   const expiryDateRegex = /(?:Expiry Date|Expire Date|Pe Expire Date)\s*[:|-]?\s*(\d{1,2}-[A-Z]{3}-\d{4})/i;
+  const nationalityRegex = /(?:Nationality|Citizenship)\s*[:|-]?\s*([A-Za-z]+)/i;
+  const sexRegex = /(?:Sex|Gender)\s*[:|-]?\s*(Male|Female|Other)/i;
 
   // Log regex matches for debugging
   const nameMatch = extractedText.match(nameRegex);
@@ -17,12 +19,18 @@ export const parseDocumentData = (extractedText: string): any => {
 
   const expiryDateMatch = extractedText.match(expiryDateRegex);
   console.log('Expiry Date Match:', expiryDateMatch);
+  
+  const nationalityMatch = extractedText.match(nationalityRegex);
+  console.log('Nationality Match:', nationalityMatch);
+  
+  const sexMatch = extractedText.match(sexRegex);
+  console.log('Sex Match:', sexMatch);
 
   // Extracted fields with default values if null
   const surname = nameMatch ? nameMatch[1] : null;
   const firstName = nameMatch ? nameMatch[2] : null;
   const documentNumber = idNumberMatch ? idNumberMatch[1] : null;
-
+  
   // Parse dates with error handling
   const parseDate = (dateString: string): Date | null => {
     const parts = dateString.split('-');
@@ -42,13 +50,19 @@ export const parseDocumentData = (extractedText: string): any => {
   // Combine names into a full name
   const fullName = [surname, firstName].filter(Boolean).join(' ');
 
+  // Extract nationality and sex
+  const nationality = nationalityMatch ? nationalityMatch[1] : null;
+  const sex = sexMatch ? sexMatch[1] : null;
+
   // Return structured data if essential fields are present
-  if (fullName && documentNumber && dateOfBirth && expiryDate) {
+  if (fullName && documentNumber && dateOfBirth && expiryDate && nationality && sex) {
     return {
       fullName,
       documentNumber,
       dateOfBirth,
       expiryDate,
+      nationality,
+      sex,
       documentType: 'ID_CARD',
       createdAt: new Date(), // Current date/time
     };
@@ -65,6 +79,8 @@ export const validateParsedData = (data: any): boolean => {
     !!data.fullName &&
     !!data.documentNumber &&
     data.dateOfBirth instanceof Date && !isNaN(data.dateOfBirth.getTime()) && // Validate date
-    data.expiryDate instanceof Date && !isNaN(data.expiryDate.getTime()) // Validate date
+    data.expiryDate instanceof Date && !isNaN(data.expiryDate.getTime()) && // Validate date
+    !!data.nationality && // Validate nationality
+    !!data.sex // Validate sex
   );
 };

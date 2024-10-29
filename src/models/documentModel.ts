@@ -6,6 +6,8 @@ const DocumentSchema = new Schema<IDocument>({
   documentNumber: { type: String, required: true, unique: true },
   dateOfBirth: { type: Date, required: true },
   expiryDate: { type: Date, required: true },
+  nationality: { type: String, required: true }, // Added nationality field
+  sex: { type: String, required: true }, // Added sex field
   documentType: { type: String, required: true }, // e.g., 'ID', 'Passport'
   createdAt: { type: Date, default: Date.now }
 });

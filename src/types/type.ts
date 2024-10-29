@@ -3,9 +3,12 @@ export interface IDocument {
     documentNumber: string;
     dateOfBirth: Date;
     expiryDate: Date;
+    nationality: string; // Added nationality field
+    sex: string; // Added sex field
     documentType: string;
     createdAt: Date;
 }
+
 
 export interface RawOcrResponse {
     text: string;
