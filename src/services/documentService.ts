@@ -1,86 +1,82 @@
 export const parseDocumentData = (extractedText: string): any => {
-  // Regular expressions for matching fields in the extracted text with flexible patterns
-  const nameRegex = /(?:PP Name|Surname|Name)\s*[:|-]?\s*([A-Za-z]+)\s+([A-Za-z]+)/i;
-  const dobRegex = /(?:Date of Birth|rl Date of Birth|Daxie of Dirth)\s*[:|-]?\s*(\d{1,2}-[A-Z]{3}-\d{4})/i;
-  const idNumberRegex = /(?:ID Number|Number|ID)\s*[:|-]?\s*(\d{6,10})/i;
-  const expiryDateRegex = /(?:Expiry Date|Expire Date|Pe Expire Date)\s*[:|-]?\s*(\d{1,2}-[A-Z]{3}-\d{4})/i;
-  const nationalityRegex = /(?:Nationality|Citizenship)\s*[:|-]?\s*([A-Za-z]+)/i;
+  // Improved Regular expressions with flexible matching
+  const nameRegex = /(?:NAME|Full Name|Surname|Other Name|First Name|Middle Name|FN|LN)[\s\W]*([A-Za-z\s,.]+)/i;
+  const idNumberRegex = /(?:IDNO|ID NO|ID Number|Identity number|Number|ID)\s*[:|-]?\s*([\d-]+)/i;
+  const dobRegex = /(?:Date of Birth|DOB|Birth)\s*[:|-]?\s*(\d{1,2}\/\d{1,2}\/\d{2,4})/i;
+  const addressRegex = /(?:Address|Add|Addr)[\s\W]*([A-Za-z0-9\s,.-]+)/i;
   const sexRegex = /(?:Sex|Gender)\s*[:|-]?\s*(Male|Female|Other)/i;
+  const emailRegex = /(?:Email|E-mail|Mail)\s*[:|-]?\s*([\w.-]+@[a-z]+\.[a-z]+)/i;
+  const phoneRegex = /(?:Phone|Tel|Mobile)[\s\W]*([+]?[\d\s-]+)/i;
 
-  // Log regex matches for debugging
-  const nameMatch = extractedText.match(nameRegex);
-  console.log('Name Match:', nameMatch);
+  // Split the extracted text by lines to aid in line-by-line matching
+  const lines = extractedText.split('\n');
 
-  const dobMatch = extractedText.match(dobRegex);
-  console.log('DOB Match:', dobMatch);
+  // Helper function to search to the right or below a heading
+  const findDataForHeading = (regex: RegExp): string | null => {
+    for (let i = 0; i < lines.length; i++) {
+      const match = lines[i].match(regex);
+      if (match) {
+        // First, check if data is directly beside the heading
+        const inlineMatch = match[1]?.trim();
+        if (inlineMatch) return inlineMatch;
 
-  const idNumberMatch = extractedText.match(idNumberRegex);
-  console.log('ID Number Match:', idNumberMatch);
-
-  const expiryDateMatch = extractedText.match(expiryDateRegex);
-  console.log('Expiry Date Match:', expiryDateMatch);
-  
-  const nationalityMatch = extractedText.match(nationalityRegex);
-  console.log('Nationality Match:', nationalityMatch);
-  
-  const sexMatch = extractedText.match(sexRegex);
-  console.log('Sex Match:', sexMatch);
-
-  // Extracted fields with default values if null
-  const surname = nameMatch ? nameMatch[1] : null;
-  const firstName = nameMatch ? nameMatch[2] : null;
-  const documentNumber = idNumberMatch ? idNumberMatch[1] : null;
-  
-  // Parse dates with error handling
-  const parseDate = (dateString: string): Date | null => {
-    const parts = dateString.split('-');
-    if (parts.length === 3) {
-      const day = parseInt(parts[0], 10);
-      const month = new Date(Date.parse(parts[1] + " 1")).getMonth(); // Convert month to numeric
-      const year = parseInt(parts[2], 10);
-      const date = new Date(year, month, day);
-      return isNaN(date.getTime()) ? null : date; // Validate date
+        // If not found beside, check below the heading (within the next few lines)
+        for (let j = 1; j <= 3 && i + j < lines.length; j++) {
+          const belowMatch = lines[i + j].trim();
+          if (belowMatch) return belowMatch;
+        }
+      }
     }
-    return null; // Return null if format is invalid
+    return null;
   };
 
-  const dateOfBirth = dobMatch ? parseDate(dobMatch[1]) : null;
-  const expiryDate = expiryDateMatch ? parseDate(expiryDateMatch[1]) : null;
+  // Extract values using the helper function
+  const fullName = findDataForHeading(nameRegex);
+  const documentNumber = findDataForHeading(idNumberRegex);
+  const dobMatch = findDataForHeading(dobRegex);
+  const address = findDataForHeading(addressRegex);
+  const sex = findDataForHeading(sexRegex);
+  const email = findDataForHeading(emailRegex);
+  const phone = findDataForHeading(phoneRegex);
 
-  // Combine names into a full name
-  const fullName = [surname, firstName].filter(Boolean).join(' ');
+  // Parse the date of birth
+  const parseDate = (dateString: string): Date | null => {
+    const parts = dateString.split('/');
+    if (parts.length === 3) {
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const year = parseInt(parts[2], 10);
+      const date = new Date(year, month, day);
+      return isNaN(date.getTime()) ? null : date;
+    }
+    return null;
+  };
 
-  // Extract nationality and sex
-  const nationality = nationalityMatch ? nationalityMatch[1] : null;
-  const sex = sexMatch ? sexMatch[1] : null;
+  const dateOfBirth = dobMatch ? parseDate(dobMatch) : null;
 
-  // Return structured data if essential fields are present
-  if (fullName && documentNumber && dateOfBirth && expiryDate && nationality && sex) {
-    return {
-      fullName,
-      documentNumber,
-      dateOfBirth,
-      expiryDate,
-      nationality,
-      sex,
-      documentType: 'ID_CARD',
-      createdAt: new Date(), // Current date/time
-    };
-  }
-
-  // Return null if essential fields are missing
-  return null;
+  // Construct structured data object with parsed values
+  return {
+    fullName,
+    documentNumber,
+    dateOfBirth,
+    address,
+    sex,
+    email,
+    phone,
+    documentType: 'Student ID', // Assuming a default document type
+    createdAt: new Date(), // Current date/time
+  };
 };
+
 
 export const validateParsedData = (data: any): boolean => {
   // Ensure required fields are present and valid
   return (
     typeof data === 'object' &&
     !!data.fullName &&
-    !!data.documentNumber &&
-    data.dateOfBirth instanceof Date && !isNaN(data.dateOfBirth.getTime()) && // Validate date
-    data.expiryDate instanceof Date && !isNaN(data.expiryDate.getTime()) && // Validate date
-    !!data.nationality && // Validate nationality
-    !!data.sex // Validate sex
+    !!data.sex && // Validate gender/sex
+    data.dateOfBirth instanceof Date && !isNaN(data.dateOfBirth.getTime()) && // Validate date of birth
+    data.issueDate instanceof Date && !isNaN(data.issueDate.getTime()) && // Validate issue date
+    data.expiryDate instanceof Date && !isNaN(data.expiryDate.getTime()) // Validate expiry date
   );
 };

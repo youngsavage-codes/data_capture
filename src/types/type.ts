@@ -1,13 +1,14 @@
 export interface IDocument {
-    fullName: string;
-    documentNumber: string;
-    dateOfBirth: Date;
-    expiryDate: Date;
-    nationality: string; // Added nationality field
-    sex: string; // Added sex field
-    documentType: string;
-    createdAt: Date;
+    fullName: string; // Required: name field
+    documentNumber?: string; // Optional: document number
+    dateOfBirth: Date; // Required: date of birth
+    issueDate?: Date; // Optional: issue date
+    expiryDate?: Date; // Optional: expiration date
+    gender: string; // Required: gender
+    address?: string; // Optional: address
+    createdAt?: Date; // Optional: creation timestamp, defaults to now in schema
 }
+
 
 
 export interface RawOcrResponse {
